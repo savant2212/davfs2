@@ -1005,6 +1005,55 @@ dav_getattr(dav_node *node, uid_t uid)
     return 0;
 }
 
+int
+dav_setxattr(dav_node *node, const char *name, char *buf, size_t *size,
+        uid_t uid)
+{
+	if (!is_valid(node)){
+		return ENOENT;
+	}
+
+	syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "getxattr %s", node->path);
+
+	if (node->parent != NULL && !has_permission(node->parent, uid, X_OK | R_OK)){
+		syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "getxattr EACCESS ERRORR");
+		return EACCES;
+	}
+
+	syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "xattrs %x, count %i", node->xattrs, node->xattr_count);
+
+	dav_xattr_item* list = node->xattrs;
+	char* ns = "user.";
+	dav_xattr_item* prev ;
+
+	while( list != NULL){
+    	//syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "xattrs %s:%s", list->name, list->value);
+    	int len = strlen(list->name)+6;
+		char* tmp_str = (char*)ne_malloc(len);
+		memset(tmp_str,0, len );
+		strncat(tmp_str,ns,5);
+		strncat(tmp_str,list->name,strlen(list->name));
+		tmp_str[len-1] = '\0';
+		syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "xattrs tmpname %s", tmp_str);
+		if( strncmp(name,tmp_str, strlen(name)) == 0){
+			syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "found attr %s", list->name);
+			dav_proppatch(node->path, list->name, buf, 0);
+	    	free(tmp_str);
+			return 0;
+		}
+
+		free(tmp_str);
+
+		prev=list;
+    	list = list->next;
+    }
+
+	//add new param;
+
+	dav_proppatch(node->path, name+5, buf, 0);
+
+	return 0;
+}
 
 int
 dav_getxattr(dav_node *node, const char *name, char *buf, size_t *size,

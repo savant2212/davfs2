@@ -926,49 +926,74 @@ fuse_rename(void)
 
 
 static uint32_t
-fuse_setattr(void)
+fuse_setxattr(void)
 {
     struct fuse_in_header *ih = (struct fuse_in_header *) buf;
-    struct fuse_setattr_in *in = (struct fuse_setattr_in *)
+    struct fuse_setattr_in *in = (struct fuse_setxattr_in *)
                                  (buf + sizeof(struct fuse_in_header));
     struct fuse_out_header *oh = (struct fuse_out_header *) buf;
-    struct fuse_attr_out *out = (struct fuse_attr_out *)
+    struct fuse_attr_out *out = (struct fuse_out_header *)
                                 (buf + sizeof(struct fuse_out_header));
+
+    char *name = (char *) (buf + sizeof(struct fuse_in_header)
+                               + sizeof(struct fuse_setxattr_in));
+    char *value = (char *) (buf + sizeof(struct fuse_out_header));
+
+
     if (debug) {
-        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "FUSE_SETATTR:");
+        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "FUSE_SETXATTR:");
         syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  n 0x%llx, m 0%o",
                ih->nodeid, in->mode);
-        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  uid %i, gid %i",
-               in->uid, in->gid);
-        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  sz %llu, at %llu,",
-               in->size, in->atime);
-        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  mt %llu", in->mtime);
     }
-
-    oh->error = dav_setattr((dav_node *) ((size_t) ih->nodeid), ih->uid,
-                            in->valid & FATTR_MODE, in->mode,
-                            in->valid & FATTR_UID, in->uid,
-                            in->valid & FATTR_GID, in->gid,
-                            in->valid & FATTR_ATIME, in->atime,
-                            in->valid & FATTR_MTIME, in->mtime,
-                            in->valid & FATTR_SIZE, in->size);
+    size_t size = in->size;
+    oh->error = dav_setxattr((dav_node *) ((size_t) ih->nodeid), name, value, &size, uid);
 
     if (oh->error) {
         oh->error *= -1;
         return sizeof(struct fuse_out_header);
     }
 
-    set_attr(&out->attr, (dav_node *) ((size_t) ih->nodeid));
-    out->attr_valid = 1;
-    out->attr_valid_nsec = 0;
-    out->dummy = 0;
-
     return sizeof(struct fuse_out_header) + sizeof(struct fuse_attr_out);
 }
 
 static uint32_t
-fuse_setxattr(void){
-	return -1;
+fuse_setattr(void){
+	struct fuse_in_header *ih = (struct fuse_in_header *) buf;
+	    struct fuse_setattr_in *in = (struct fuse_setattr_in *)
+	                                 (buf + sizeof(struct fuse_in_header));
+	    struct fuse_out_header *oh = (struct fuse_out_header *) buf;
+	    struct fuse_attr_out *out = (struct fuse_attr_out *)
+	                                (buf + sizeof(struct fuse_out_header));
+	    if (debug) {
+	        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "FUSE_SETATTR:");
+	        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  n 0x%llx, m 0%o",
+	               ih->nodeid, in->mode);
+	        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  uid %i, gid %i",
+	               in->uid, in->gid);
+	        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  sz %llu, at %llu,",
+	               in->size, in->atime);
+	        syslog(LOG_MAKEPRI(LOG_DAEMON, LOG_DEBUG), "  mt %llu", in->mtime);
+	    }
+
+	    oh->error = dav_setattr((dav_node *) ((size_t) ih->nodeid), ih->uid,
+	                            in->valid & FATTR_MODE, in->mode,
+	                            in->valid & FATTR_UID, in->uid,
+	                            in->valid & FATTR_GID, in->gid,
+	                            in->valid & FATTR_ATIME, in->atime,
+	                            in->valid & FATTR_MTIME, in->mtime,
+	                            in->valid & FATTR_SIZE, in->size);
+
+	    if (oh->error) {
+	        oh->error *= -1;
+	        return sizeof(struct fuse_out_header);
+	    }
+
+	    set_attr(&out->attr, (dav_node *) ((size_t) ih->nodeid));
+	    out->attr_valid = 1;
+	    out->attr_valid_nsec = 0;
+	    out->dummy = 0;
+
+	    return sizeof(struct fuse_out_header) + sizeof(struct fuse_attr_out);
 }
 
 static uint32_t

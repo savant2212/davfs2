@@ -684,71 +684,35 @@ dav_get_collection(const char *path, dav_props **props)
     return ret;
 }
 
-//int
-//dav_getxattr(const char *path, char* name, dav_xattrs **attrs)
-//{
-//	int ret;
-//	if (!initialized) {
-//		ret = dav_init_connection(path);
-//		if (ret) return ret;
-//	}
-//
-//	propfind_context ctx;
-//	ctx.path = path;
-//	ctx.results = NULL;
-//
-//	char *spath = ne_path_escape(path);
-//	ne_propfind_handler *ph = ne_propfind_create(session, spath, NE_DEPTH_ZERO);
-//	ret = ne_propfind_named(ph, prop_names, prop_result, &ctx);
-//	ret = get_error(ret, "PROPFIND");
-//	ne_propfind_destroy(ph);
-//	free(spath);
-//
-//	if (ret) {
-//		while(ctx.results) {
-//			dav_props *tofree = ctx.results;
-//			ctx.results = ctx.results->next;
-//			dav_delete_props(tofree);
-//		}
-//	}
-//
-//	*props = ctx.results;
-//	return ret;
-//}
-//
-//int
-//dav_listxattr(dav_node *node, char *buf, size_t *size, uid_t uid)
-//{
-//	int ret;
-//		if (!initialized) {
-//			ret = dav_init_connection(path);
-//			if (ret) return ret;
-//		}
-//
-//		propfind_context ctx;
-//		ctx.path = path;
-//		ctx.results = NULL;
-//
-//		char *spath = ne_path_escape(path);
-//		ne_propfind_handler *ph = ne_propfind_create(session, spath, NE_DEPTH_ZERO);
-//		//ne_simple_propfind(session, spath, NE_DEPTH_ZERO, NULL);
-//		//ret = ne_propfind_named(ph, prop_names, prop_result, &ctx);
-//		ret = ne_propfind_all(ph, NULL, &ctx);
-//		ret = get_error(ret, "PROPFIND");
-//		ne_propfind_destroy(ph);
-//		free(spath);
-//
-//		if (ret) {
-//			while(ctx.results) {
-//				dav_props *tofree = ctx.results;
-//				ctx.results = ctx.results->next;
-//				dav_delete_props(tofree);
-//			}
-//		}
-//
-//		*props = ctx.results;
-//		return ret;
-//}
+int
+dav_proppatch(const char *path, char* name, char* value, int type){
+	int ret;
+	if (!initialized) {
+		ret = dav_init_connection(path);
+		if (ret) return ret;
+	}
+
+	ne_proppatch_operation op;
+	ne_propname name;
+
+	if( type == 0){
+		op.type = ne_propset;
+	} else if (type == 1){
+		op.type = ne_propremove;
+	} else {
+		return EINVAL;
+	}
+
+	name.name = name;
+
+	op.name = &name;
+	op.value = value;
+
+	ret = ne_proppatch(session, path, &op);
+
+	return 0;
+}
+
 const char *
 dav_get_webdav_error()
 {
