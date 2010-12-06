@@ -1,0 +1,11 @@
+src/mount.davfs2
+src/umount.davfs2
+src/.deps
+src/*.o
+Makefile
+*/Makefile
+configure
+config.log
+config.h
+config.h.in
+stamp-h1
